@@ -5,6 +5,7 @@ using stockAppApi.BLL.Validators;
 using stockAppApi.Entities;
 using stockAppApi.Models.Api.Request;
 using stockAppApi.Models.Api.Response;
+using Microsoft.Extensions.Configuration;
 
 namespace stockAppApi.BLL
 {
@@ -18,9 +19,23 @@ namespace stockAppApi.BLL
     public class StockService : IStockService
     {
         private readonly DataContext _dbContext;
-        public StockService(DataContext context)
+        private readonly string _apiKey;
+
+        protected readonly IConfiguration _configuration;
+
+        public StockService(DataContext context, IConfiguration configuration)
         {
             _dbContext = context;
+
+            if (configuration != null && configuration["ApiKey"] != null)
+            {
+                _apiKey = configuration.GetValue<string>("ApiKey") ?? "";
+                Console.WriteLine(_apiKey);
+            }
+            else
+            {
+                throw new Exception("ApiKey not found in appsettings.json");
+            }
         }
 
         public Stock UpsertStock(UpsertStockRequest request)
@@ -80,7 +95,7 @@ namespace stockAppApi.BLL
                 RequestUri = new Uri("https://yahoo-finance15.p.rapidapi.com/api/yahoo/qu/quote/AAPL"),
                 Headers =
                     {
-                        { "X-RapidAPI-Key", "98b250e0fdmsh2fef79af7e1ab50p1f6207jsnc032ff321b6b" },
+                        { "X-RapidAPI-Key", _apiKey },
                         { "X-RapidAPI-Host", "yahoo-finance15.p.rapidapi.com" },
                     },
             };
