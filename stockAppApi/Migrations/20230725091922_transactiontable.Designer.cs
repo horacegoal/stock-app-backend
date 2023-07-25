@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -9,9 +10,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace stockAppApi.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20230725091922_transactiontable")]
+    partial class transactiontable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "7.0.9");
@@ -29,36 +32,36 @@ namespace stockAppApi.Migrations
                         .HasColumnName("Date")
                         .HasDefaultValueSql("datetime('now')");
 
-                    b.Property<double?>("MarketCap")
-                        .HasColumnType("REAL")
+                    b.Property<decimal?>("MarketCap")
+                        .HasColumnType("TEXT")
                         .HasColumnName("MarketCap");
 
                     b.Property<string>("Name")
                         .HasColumnType("TEXT")
                         .HasColumnName("Name");
 
-                    b.Property<double?>("PERatio")
-                        .HasColumnType("REAL")
+                    b.Property<decimal?>("PERatio")
+                        .HasColumnType("TEXT")
                         .HasColumnName("PERatio");
 
-                    b.Property<double?>("PercentageChange")
-                        .HasColumnType("REAL")
+                    b.Property<decimal?>("PercentageChange")
+                        .HasColumnType("TEXT")
                         .HasColumnName("PercentageChange");
 
-                    b.Property<double?>("Price")
-                        .HasColumnType("REAL")
+                    b.Property<decimal?>("Price")
+                        .HasColumnType("TEXT")
                         .HasColumnName("Price");
 
-                    b.Property<double?>("ShareFloat")
-                        .HasColumnType("REAL")
+                    b.Property<decimal?>("ShareFloat")
+                        .HasColumnType("TEXT")
                         .HasColumnName("ShareFloat");
 
                     b.Property<string>("Symbol")
                         .HasColumnType("TEXT")
                         .HasColumnName("Symbol");
 
-                    b.Property<double?>("Volume")
-                        .HasColumnType("REAL")
+                    b.Property<decimal?>("Volume")
+                        .HasColumnType("TEXT")
                         .HasColumnName("Volume");
 
                     b.HasKey("Id");
@@ -79,17 +82,16 @@ namespace stockAppApi.Migrations
                         .HasColumnName("DateCreated")
                         .HasDefaultValueSql("datetime('now')");
 
-                    b.Property<double>("Price")
-                        .HasColumnType("REAL")
+                    b.Property<decimal>("Price")
+                        .HasColumnType("TEXT")
                         .HasColumnName("Price");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("INTEGER")
                         .HasColumnName("Quantity");
 
-                    b.Property<int?>("StockId")
-                        .IsRequired()
-                        .HasColumnType("INTEGER")
+                    b.Property<string>("StockId")
+                        .HasColumnType("TEXT")
                         .HasColumnName("StockId");
 
                     b.Property<int?>("Type")
@@ -98,25 +100,7 @@ namespace stockAppApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("StockId");
-
                     b.ToTable("Transaction");
-                });
-
-            modelBuilder.Entity("stockAppApi.Entities.Transaction", b =>
-                {
-                    b.HasOne("stockAppApi.Entities.Stock", "Stock")
-                        .WithMany("Transactions")
-                        .HasForeignKey("StockId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Stock");
-                });
-
-            modelBuilder.Entity("stockAppApi.Entities.Stock", b =>
-                {
-                    b.Navigation("Transactions");
                 });
 #pragma warning restore 612, 618
         }

@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
+    <!-- <RuntimeIdentifiers>linux-arm64</RuntimeIdentifiers> -->
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
@@ -9,17 +10,18 @@
   <PropertyGroup Condition=" '$(RunConfiguration)' == 'https' " />
   <PropertyGroup Condition=" '$(RunConfiguration)' == 'http' " />
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="7.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="7.0.8">
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="7.0.9" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="7.0.9">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
-    <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="7.0.8" />
-    <PackageReference Include="Dapper" Version="2.0.143" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="7.0.8" />
-    <PackageReference Include="FluentValidation" Version="11.5.2" />
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.48" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="7.0.9" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="7.0.9" />
+    <PackageReference Include="FluentValidation" Version="11.6.0" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.49" />
+    <PackageReference Include="OxyPlot.Core" Version="2.1.2" />
+    <PackageReference Include="OxyPlot.Core.Drawing" Version="2.1.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -33,6 +35,10 @@
     <None Remove="Models\Api\" />
     <None Remove="Models\Api\Request\" />
     <None Remove="HtmlAgilityPack" />
+    <None Remove="OxyPlot.Core" />
+    <None Remove="OxyPlot.Wpf" />
+    <None Remove="OxyPlot.Core.Drawing" />
+    <None Remove="Microsoft.EntityFrameworkCore.Analyzers" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="BLL\" />

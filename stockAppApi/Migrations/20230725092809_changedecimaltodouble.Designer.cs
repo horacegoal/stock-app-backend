@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -9,9 +10,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace stockAppApi.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20230725092809_changedecimaltodouble")]
+    partial class changedecimaltodouble
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "7.0.9");
@@ -88,7 +91,6 @@ namespace stockAppApi.Migrations
                         .HasColumnName("Quantity");
 
                     b.Property<int?>("StockId")
-                        .IsRequired()
                         .HasColumnType("INTEGER")
                         .HasColumnName("StockId");
 
@@ -98,25 +100,7 @@ namespace stockAppApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("StockId");
-
                     b.ToTable("Transaction");
-                });
-
-            modelBuilder.Entity("stockAppApi.Entities.Transaction", b =>
-                {
-                    b.HasOne("stockAppApi.Entities.Stock", "Stock")
-                        .WithMany("Transactions")
-                        .HasForeignKey("StockId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Stock");
-                });
-
-            modelBuilder.Entity("stockAppApi.Entities.Stock", b =>
-                {
-                    b.Navigation("Transactions");
                 });
 #pragma warning restore 612, 618
         }

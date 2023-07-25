@@ -12,26 +12,38 @@ public class Stock
     public int Id { get; set; }
 
     [Column("Symbol")]
-    public string Symbol { get; set; }
+    public string? Symbol { get; set; }
 
     [Column("Name")]
-    public string Name { get; set; }
+    public string? Name { get; set; }
 
     [Column("Date")]
     public DateTime Date { get; set; }
 
-    [Column("Open")]
-    public decimal Open { get; set; }
 
-    [Column("High")]
-    public decimal High { get; set; }
+    [Column("Price")]
+    public double Price { get; set; }
 
-    [Column("Low")]
-    public decimal Low { get; set; }
+    // Add Market Cap column field
+    [Column("MarketCap")]
+    public double? MarketCap { get; set; }
 
-    [Column("Close")]
-    public decimal Close { get; set; }
+    // Add p/e ratio column field
+    [Column("PERatio")]
+    public double? PERatio { get; set; }
 
+    // Add volumn
     [Column("Volume")]
-    public decimal Volume { get; set; }
+    public double? Volume { get; set; }
+
+    // add percentage change
+    [Column("PercentageChange")]
+    public double? PercentageChange { get; set; }
+
+    //add share float
+    [Column("ShareFloat")]
+    public double? ShareFloat { get; set; }
+
+    //add Transactions
+    public List<Transaction> Transactions { get; set; }
 }

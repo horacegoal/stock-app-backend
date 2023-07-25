@@ -15,22 +15,32 @@ builder.Services.AddDbContext<DataContext>(options =>
 
 builder.Services.AddScoped<IStockService, StockService>();
 builder.Services.AddScoped<IScrapStockDataService, ScrapStockDataService>();
+builder.Services.AddScoped<IYahooScrapStockDataService, YahooScrapStockDataService>();
 
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+Console.WriteLine("app.Environment.IsDevelopment()");
+Console.WriteLine(app.Environment.IsDevelopment());
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
 app.MapControllers();
+
+// return Hello world from root path
+app.MapGet("/", () =>
+{
+    return Results.Ok("Hello Worlds!");
+});
+Console.WriteLine("Hello Worldss!");
 
 app.Run();
 
