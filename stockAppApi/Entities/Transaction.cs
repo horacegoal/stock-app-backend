@@ -33,9 +33,8 @@ public class Transaction
 
     // Add Market Cap column field
     [Column("DateCreated")]
-    public DateTime DateCreated { get; set; }
+    public DateTime TransactionDate { get; set; }
 
     public Stock Stock { get; set; }
-
 
 }

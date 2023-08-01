@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -9,9 +10,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace stockAppApi.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20230727142819_10dayvolumn")]
+    partial class _10dayvolumn
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "7.0.9");
@@ -69,42 +72,18 @@ namespace stockAppApi.Migrations
                     b.ToTable("Stocks");
                 });
 
-            modelBuilder.Entity("stockAppApi.Entities.StockHistory", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("Id");
-
-                    b.Property<double>("ClosePrice")
-                        .HasColumnType("REAL")
-                        .HasColumnName("ClosePrice");
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("TEXT")
-                        .HasColumnName("Date");
-
-                    b.Property<int>("StockId")
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("StockId");
-
-                    b.Property<int>("Volumn")
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("Volume");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("StockId");
-
-                    b.ToTable("StockHistory");
-                });
-
             modelBuilder.Entity("stockAppApi.Entities.Transaction", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")
                         .HasColumnName("Id");
+
+                    b.Property<DateTime>("DateCreated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("DateCreated")
+                        .HasDefaultValueSql("datetime('now')");
 
                     b.Property<double>("Price")
                         .HasColumnType("REAL")
@@ -119,10 +98,6 @@ namespace stockAppApi.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnName("StockId");
 
-                    b.Property<DateTime>("TransactionDate")
-                        .HasColumnType("TEXT")
-                        .HasColumnName("DateCreated");
-
                     b.Property<int?>("Type")
                         .HasColumnType("INTEGER")
                         .HasColumnName("Type");
@@ -132,17 +107,6 @@ namespace stockAppApi.Migrations
                     b.HasIndex("StockId");
 
                     b.ToTable("Transaction");
-                });
-
-            modelBuilder.Entity("stockAppApi.Entities.StockHistory", b =>
-                {
-                    b.HasOne("stockAppApi.Entities.Stock", "Stock")
-                        .WithMany("StockHistories")
-                        .HasForeignKey("StockId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Stock");
                 });
 
             modelBuilder.Entity("stockAppApi.Entities.Transaction", b =>
@@ -158,8 +122,6 @@ namespace stockAppApi.Migrations
 
             modelBuilder.Entity("stockAppApi.Entities.Stock", b =>
                 {
-                    b.Navigation("StockHistories");
-
                     b.Navigation("Transactions");
                 });
 #pragma warning restore 612, 618

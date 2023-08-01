@@ -22,7 +22,7 @@ public class Stock
 
 
     [Column("Price")]
-    public double Price { get; set; }
+    public double? Price { get; set; }
 
     // Add Market Cap column field
     [Column("MarketCap")]
@@ -44,6 +44,16 @@ public class Stock
     [Column("ShareFloat")]
     public double? ShareFloat { get; set; }
 
-    //add Transactions
+    public int? AverageDailyVolume10Day { get; set; }
+
+    //json ignore
+    [System.Text.Json.Serialization.JsonIgnore]
     public List<Transaction> Transactions { get; set; }
+
+    public List<StockHistory> StockHistories { get; set; }
+    [NotMapped]
+    public int ShareCount { get; set; }
+    [NotMapped]
+    public double CostPerShare { get; set; }
+
 }

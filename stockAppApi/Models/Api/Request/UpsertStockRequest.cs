@@ -9,7 +9,7 @@ namespace stockAppApi.Models.Api.Request
 
         public DateTime Date { get; set; }
 
-        public double Price { get; set; }
+        public double? Price { get; set; }
 
         public double? MarketCap { get; set; }
 
@@ -20,6 +20,8 @@ namespace stockAppApi.Models.Api.Request
         public double? PercentageChange { get; set; }
 
         public double? ShareFloat { get; set; }
+
+        public int? AverageDailyVolume10Day { get; set; }
 
     }
 }

@@ -6,6 +6,7 @@ using stockAppApi.Entities;
 using stockAppApi.Models.Api.Request;
 using stockAppApi.Models.Api.Response;
 using Microsoft.Extensions.Configuration;
+using System.Text.Json.Serialization;
 
 namespace stockAppApi.BLL
 {
@@ -14,7 +15,11 @@ namespace stockAppApi.BLL
     {
         Stock UpsertStock(UpsertStockRequest request);
         List<Stock> ListStocks();
-        Task<Stock?> GetStockBySymbol(string symbol);
+        Task<List<Stock>> GetStocksBySymbols(string[] symbols);
+
+        void DeleteStock(int id);
+        Task<List<Stock>> UpdateAllStocks();
+
     }
     public class StockService : IStockService
     {
@@ -30,7 +35,6 @@ namespace stockAppApi.BLL
             if (configuration != null && configuration["ApiKey"] != null)
             {
                 _apiKey = configuration.GetValue<string>("ApiKey") ?? "";
-                Console.WriteLine(_apiKey);
             }
             else
             {
@@ -52,13 +56,14 @@ namespace stockAppApi.BLL
                 {
                     Symbol = request.Symbol,
                     Name = request.Name,
-                    Date = request.Date,
+                    Date = DateTimeOffset.UtcNow.DateTime,
                     Price = request.Price,
                     MarketCap = request.MarketCap,
                     PERatio = request.PERatio,
                     Volume = request.Volume,
                     PercentageChange = request.PercentageChange,
-                    ShareFloat = request.ShareFloat
+                    ShareFloat = request.ShareFloat,
+                    AverageDailyVolume10Day = request.AverageDailyVolume10Day
                 };
                 _dbContext.Stocks.Add(stock);
             }
@@ -66,13 +71,14 @@ namespace stockAppApi.BLL
             {
                 stock.Symbol = request.Symbol;
                 stock.Name = request.Name;
-                stock.Date = request.Date;
+                stock.Date = DateTimeOffset.UtcNow.DateTime;
                 stock.Price = request.Price;
                 stock.MarketCap = request.MarketCap;
                 stock.PERatio = request.PERatio;
                 stock.Volume = request.Volume;
                 stock.PercentageChange = request.PercentageChange;
                 stock.ShareFloat = request.ShareFloat;
+                stock.AverageDailyVolume10Day = request.AverageDailyVolume10Day;
             }
 
             _dbContext.SaveChanges();
@@ -82,17 +88,117 @@ namespace stockAppApi.BLL
         // list stocks from the database
         public List<Stock> ListStocks()
         {
+            var stocks = _dbContext.Stocks.Select
+            (
+                x => new Stock
+                {
+                    Id = x.Id,
+                    Symbol = x.Symbol,
+                    Name = x.Name,
+                    Date = x.Date,
+                    Price = x.Price,
+                    MarketCap = x.MarketCap,
+                    PERatio = x.PERatio,
+                    Volume = x.Volume,
+                    PercentageChange = x.PercentageChange,
+                    ShareFloat = x.ShareFloat,
+                    AverageDailyVolume10Day = x.AverageDailyVolume10Day,
+                    ShareCount = getShareCountByStock(x.Id, _dbContext),
+                    CostPerShare = getCostPerShare(x.Id, _dbContext)
+                }
+            ).ToList();
+            return stocks;
+
+        }
+
+        public static int getShareCountByStock(int stockId, DataContext _dbContext)
+        {
+            var transaction = _dbContext.Transactions.Where(x => x.StockId == stockId).ToList();
+            int shareCount = 0;
+            foreach (var item in transaction)
+            {
+                if (item.Type == TransactionType.Buy)
+                {
+                    shareCount += item.Quantity;
+                }
+                else
+                {
+                    shareCount -= item.Quantity;
+                }
+            }
+            return shareCount;
+        }
+
+        public static double getCostPerShare(int stockId, DataContext _dbContext)
+        {
+            var transactions = _dbContext.Transactions.Where(x => x.StockId == stockId).ToList();
+            double costPerShare = 0;
+            int totalShares = 0;
+            transactions.ForEach(x =>
+            {
+                if (x.Type == TransactionType.Buy)
+                {
+                    costPerShare = (costPerShare * totalShares + x.Price * x.Quantity) / (totalShares + x.Quantity);
+                    totalShares += x.Quantity;
+                }
+
+                else if (x.Type == TransactionType.Sell)
+                {
+                    totalShares -= x.Quantity;
+                }
+            });
+            return costPerShare;
+        }
+
+        public async Task<List<Stock>> UpdateAllStocks()
+        {
             var stocks = _dbContext.Stocks.ToList();
+
+            string[] symbols = stocks.Select(x => x.Symbol).ToArray()!;
+
+            List<Stock> updatedStocks = await GetStocksBySymbols(symbols);
+            foreach (var stock in updatedStocks)
+            {
+                var stockToUpdate = _dbContext.Stocks.FirstOrDefault(x => x.Symbol == stock.Symbol);
+                if (stockToUpdate != null)
+                {
+                    stockToUpdate.Name = stock.Name;
+                    stockToUpdate.Date = DateTimeOffset.UtcNow.DateTime;
+                    stockToUpdate.Price = stock.Price;
+                    stockToUpdate.MarketCap = stock.MarketCap;
+                    stockToUpdate.PERatio = stock.PERatio;
+                    stockToUpdate.Volume = stock.Volume;
+                    stockToUpdate.PercentageChange = stock.PercentageChange;
+                    stockToUpdate.ShareFloat = stock.ShareFloat;
+                    stockToUpdate.AverageDailyVolume10Day = stock.AverageDailyVolume10Day;
+
+                }
+            }
+
+
+            _dbContext.SaveChanges();
             return stocks;
         }
 
-        public async Task<Stock?> GetStockBySymbol(string symbol)
+        // Delete Stock
+        public void DeleteStock(int id)
         {
+            var stock = _dbContext.Stocks.FirstOrDefault(x => x.Id == id);
+            if (stock != null)
+            {
+                _dbContext.Stocks.Remove(stock);
+                _dbContext.SaveChanges();
+            }
+        }
+
+        public async Task<List<Stock>> GetStocksBySymbols(string[] symbols)
+        {
+            string symbolsString = string.Join(",", symbols);
             var client = new HttpClient();
             var request = new HttpRequestMessage
             {
                 Method = HttpMethod.Get,
-                RequestUri = new Uri("https://yahoo-finance15.p.rapidapi.com/api/yahoo/qu/quote/AAPL"),
+                RequestUri = new Uri($"https://yahoo-finance15.p.rapidapi.com/api/yahoo/qu/quote/{symbolsString}"),
                 Headers =
                     {
                         { "X-RapidAPI-Key", _apiKey },
@@ -103,28 +209,31 @@ namespace stockAppApi.BLL
             {
                 response.EnsureSuccessStatusCode();
                 var body = await response.Content.ReadAsStringAsync();
-                List<GetStockDataBySymbolResponse>? stockDataList = JsonSerializer.Deserialize<List<GetStockDataBySymbolResponse>>(body);
-                if (stockDataList?[0] != null)
+                Console.WriteLine(body);
+                List<GetStockDataBySymbolResponse>? stockDataList = JsonSerializer.Deserialize<List<GetStockDataBySymbolResponse>>(body, new JsonSerializerOptions
+                {
+                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                });
+                List<Stock> stocks = new List<Stock>();
+                foreach (var stockData in stockDataList)
                 {
                     var stock = new Stock()
                     {
-                        Symbol = stockDataList[0].symbol,
-                        Name = stockDataList[0].longName,
-                        // Date = stockDataList[0].Date,
-                        Price = stockDataList[0].regularMarketPrice,
-                        MarketCap = stockDataList[0].marketCap,
-                        PERatio = stockDataList[0].epsTrailingTwelveMonths != 0 ? stockDataList[0].regularMarketPrice / stockDataList[0].epsTrailingTwelveMonths : 0,
-                        Volume = stockDataList[0].regularMarketVolume,
-                        PercentageChange = stockDataList[0].regularMarketChangePercent,
-                        ShareFloat = stockDataList[0].sharesOutstanding
+                        Symbol = stockData.symbol,
+                        Name = stockData.longName,
+                        // Date = stockData.Date,
+                        Price = stockData.regularMarketPrice,
+                        MarketCap = stockData.marketCap,
+                        PERatio = stockData.epsTrailingTwelveMonths != 0 ? stockData.regularMarketPrice / stockData.epsTrailingTwelveMonths : 0,
+                        Volume = stockData.regularMarketVolume,
+                        PercentageChange = stockData.regularMarketChangePercent,
+                        ShareFloat = stockData.sharesOutstanding,
+                        AverageDailyVolume10Day = stockData.averageDailyVolume10Day
                     };
-                    return stock;
+                    stocks.Add(stock);
+                }
+                return stocks;
 
-                }
-                else
-                {
-                    return null;
-                }
 
 
             }

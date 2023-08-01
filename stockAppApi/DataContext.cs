@@ -30,19 +30,26 @@ public class DataContext : DbContext
             .Property(t => t.Id)
             .ValueGeneratedOnAdd();
 
-        modelBuilder.Entity<Transaction>()
-            .Property(t => t.DateCreated)
-            .HasDefaultValueSql("datetime('now')");
-
         // add relationshio between stock's id and transaction StockId field
         modelBuilder.Entity<Transaction>()
             .HasOne(t => t.Stock)
             .WithMany(s => s.Transactions)
             .HasForeignKey(t => t.StockId);
 
+        modelBuilder.Entity<StockHistory>()
+            .Property(s => s.Id)
+            .ValueGeneratedOnAdd();
+
+
+        modelBuilder.Entity<StockHistory>()
+            .HasOne(s => s.Stock)
+            .WithMany(s => s.StockHistories)
+            .HasForeignKey(s => s.StockId);
 
     }
 
     public DbSet<Stock> Stocks { get; set; }
     public DbSet<Transaction> Transactions { get; set; }
+
+    public DbSet<StockHistory> StockHistories { get; set; }
 }

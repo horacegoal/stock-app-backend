@@ -103,7 +103,7 @@ public class GetStockDataBySymbolResponse
     public bool tradeable { get; set; }
     public double trailingAnnualDividendRate { get; set; }
     public double trailingAnnualDividendYield { get; set; }
-    public double trailingPE { get; set; }
+    public double? trailingPE { get; set; }
     public double twoHundredDayAverage { get; set; }
     public double twoHundredDayAverageChange { get; set; }
     public double twoHundredDayAverageChangePercent { get; set; }
