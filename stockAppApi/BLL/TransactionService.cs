@@ -116,7 +116,7 @@ namespace stockAppApi.BLL
             string symbol = message.Substring(message.IndexOf("股") + 1, message.IndexOf("，") - message.IndexOf("股") - 1);
             Console.WriteLine(symbol);
 
-            int stockId = _dbContext.Stocks.Where(x => x.Symbol == symbol).FirstOrDefault().Id;
+            int? stockId = (_dbContext.Stocks.Where(x => x.Symbol == symbol).FirstOrDefault()?.Id) ?? throw new Exception("Stock not found");
             Console.WriteLine(stockId);
 
             return new Transaction
@@ -189,7 +189,7 @@ namespace stockAppApi.BLL
 
             List<ProfitByMonth> profitByMonthList = new List<ProfitByMonth>();
             double totalProfit = 0;
-            while (oldestTransDate < now)
+            while (oldestTransDate.Month <= now.Month && oldestTransDate.Year <= now.Year)
             {
                 int month = oldestTransDate.Month;
                 int year = oldestTransDate.Year;

@@ -50,6 +50,7 @@ public class Stock
     [System.Text.Json.Serialization.JsonIgnore]
     public List<Transaction> Transactions { get; set; }
 
+    [System.Text.Json.Serialization.JsonIgnore]
     public List<StockHistory> StockHistories { get; set; }
     [NotMapped]
     public int ShareCount { get; set; }

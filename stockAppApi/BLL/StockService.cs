@@ -7,18 +7,28 @@ using stockAppApi.Models.Api.Request;
 using stockAppApi.Models.Api.Response;
 using Microsoft.Extensions.Configuration;
 using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
+using System.Text;
+using Microsoft.AspNetCore.Mvc;
 
 namespace stockAppApi.BLL
 {
     // create interface for the stock service
     public interface IStockService
     {
+        Stock GetStockBySymbol(string symbol);
         Stock UpsertStock(UpsertStockRequest request);
         List<Stock> ListStocks();
         Task<List<Stock>> GetStocksBySymbols(string[] symbols);
 
         void DeleteStock(int id);
         Task<List<Stock>> UpdateAllStocks();
+        StockHistory InsertStockHistory(StockHistory stockHistory);
+        Task<int> InsertStockHistoryList(string symbol);
+        List<StockHistory> ListStockHistory(string symbol);
+        FileContentResult ExportStockHistory(string symbol);
+
+        void DeleteStockHistoryBySymbol(string symbol);
 
     }
     public class StockService : IStockService
@@ -84,6 +94,18 @@ namespace stockAppApi.BLL
             _dbContext.SaveChanges();
             return stock;
         }
+
+        // get stock by symbol
+        public Stock GetStockBySymbol(string symbol)
+        {
+            var stock = _dbContext.Stocks.FirstOrDefault(x => x.Symbol == symbol);
+            if (stock == null)
+            {
+                throw new Exception("Stock not found");
+            }
+            return stock;
+        }
+
 
         // list stocks from the database
         public List<Stock> ListStocks()
@@ -177,7 +199,7 @@ namespace stockAppApi.BLL
 
 
             _dbContext.SaveChanges();
-            return stocks;
+            return ListStocks();
         }
 
         // Delete Stock
@@ -190,6 +212,115 @@ namespace stockAppApi.BLL
                 _dbContext.SaveChanges();
             }
         }
+
+        public List<StockHistory> ListStockHistory(string symbol)
+        {
+            var stockHistories = _dbContext.StockHistories
+                .Where(x => x.Stock.Symbol == symbol)
+                .ToList();
+            return stockHistories;
+        }
+
+        public StockHistory InsertStockHistory(StockHistory stockHistory)
+        {
+            _dbContext.StockHistories.Add(stockHistory);
+            _dbContext.SaveChanges();
+            return stockHistory;
+        }
+
+        public void DeleteStockHistoryBySymbol(string symbol)
+        {
+            var stock = _dbContext.Stocks.FirstOrDefault(x => x.Symbol == symbol);
+            if (stock != null)
+            {
+                var stockHistories = _dbContext.StockHistories.Where(x => x.StockId == stock.Id).ToList();
+                _dbContext.StockHistories.RemoveRange(stockHistories);
+                _dbContext.SaveChanges();
+            }
+        }
+
+        public async Task<int> InsertStockHistoryList(string symbol)
+        {
+            string interval = "1d";
+            var stock = _dbContext.Stocks.FirstOrDefault(x => x.Symbol == symbol);
+            if (stock == null)
+            {
+                throw new Exception("Stock not found");
+            }
+            var client = new HttpClient();
+            var request = new HttpRequestMessage
+            {
+                Method = HttpMethod.Get,
+                RequestUri = new Uri($"https://yahoo-finance15.p.rapidapi.com/api/yahoo/hi/history/{symbol}/{interval}?diffandsplits=false"),
+                Headers =
+                    {
+                        { "X-RapidAPI-Key", _apiKey },
+                        { "X-RapidAPI-Host", "yahoo-finance15.p.rapidapi.com" },
+                    },
+            };
+            using (var response = await client.SendAsync(request))
+            {
+                response.EnsureSuccessStatusCode();
+                var body = await response.Content.ReadAsStringAsync();
+                // Console.WriteLine(body);
+                GetStockHistoryResponse? stockHistoryData = JsonSerializer.Deserialize<GetStockHistoryResponse>(body, new JsonSerializerOptions
+                {
+                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                });
+                if (stockHistoryData == null)
+                {
+                    throw new Exception("Stock history data not found");
+                }
+
+                List<StockHistory> stockHistories = new List<StockHistory>();
+
+                int count = 0;
+                Console.WriteLine(stockHistoryData);
+                foreach (long timestamp in stockHistoryData.items.Keys.Reverse())
+                {
+                    var data = new StockHistory()
+                    {
+                        StockId = stock.Id,
+                        Date = DateTime.Parse(stockHistoryData.items[timestamp].date),
+                        ClosePrice = stockHistoryData.items[timestamp].close,
+                        Volumn = stockHistoryData.items[timestamp].volume
+                    };
+                    //check if the stock history exists
+                    var stockHistory = _dbContext.StockHistories.FirstOrDefault(x => x.StockId == stock.Id && x.Date == data.Date);
+                    if (stockHistory == null)
+                    {
+                        stockHistories.Add(data);
+                        count++;
+
+                    }
+                    if (count > 365)
+                    {
+                        break;
+
+                    }
+                }
+                _dbContext.StockHistories.AddRange(stockHistories);
+                _dbContext.SaveChanges();
+                return count;
+            }
+        }
+
+        // export stock history as csv by symbol
+        public FileContentResult ExportStockHistory(string symbol)
+        {
+            var stockHistories = _dbContext.StockHistories
+                .Where(x => x.Stock.Symbol == symbol)
+                .ToList();
+            var csv = new StringBuilder();
+            csv.AppendLine("Date,ClosePrice,Volumn");
+            foreach (var stockHistory in stockHistories)
+            {
+                var newLine = string.Format("{0},{1},{2}", stockHistory.Date, stockHistory.ClosePrice, stockHistory.Volumn);
+                csv.AppendLine(newLine);
+            }
+            return new FileContentResult(Encoding.UTF8.GetBytes(csv.ToString()), "text/csv") { FileDownloadName = $"{symbol}.csv" };
+        }
+
 
         public async Task<List<Stock>> GetStocksBySymbols(string[] symbols)
         {
@@ -209,29 +340,49 @@ namespace stockAppApi.BLL
             {
                 response.EnsureSuccessStatusCode();
                 var body = await response.Content.ReadAsStringAsync();
-                Console.WriteLine(body);
-                List<GetStockDataBySymbolResponse>? stockDataList = JsonSerializer.Deserialize<List<GetStockDataBySymbolResponse>>(body, new JsonSerializerOptions
-                {
-                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-                });
+                JsonDocument doc = JsonDocument.Parse(body);
+                JsonElement list = doc.RootElement;
                 List<Stock> stocks = new List<Stock>();
-                foreach (var stockData in stockDataList)
+                // loop through the list
+                foreach (JsonElement stockObj in list.EnumerateArray())
                 {
                     var stock = new Stock()
                     {
-                        Symbol = stockData.symbol,
-                        Name = stockData.longName,
-                        // Date = stockData.Date,
-                        Price = stockData.regularMarketPrice,
-                        MarketCap = stockData.marketCap,
-                        PERatio = stockData.epsTrailingTwelveMonths != 0 ? stockData.regularMarketPrice / stockData.epsTrailingTwelveMonths : 0,
-                        Volume = stockData.regularMarketVolume,
-                        PercentageChange = stockData.regularMarketChangePercent,
-                        ShareFloat = stockData.sharesOutstanding,
-                        AverageDailyVolume10Day = stockData.averageDailyVolume10Day
+                        Symbol = stockObj.GetProperty("symbol").GetString()!,
+                        Name = stockObj.GetProperty("longName").GetString()!,
+                        // stock.Date = DateTimeOffset.UtcNow.DateTime;
+                        Price = stockObj.GetProperty("regularMarketPrice").GetDouble(),
+                        MarketCap = stockObj.GetProperty("marketCap").GetInt64(),
+                        PERatio = stockObj.GetProperty("epsTrailingTwelveMonths").GetDouble() != 0 ? stockObj.GetProperty("regularMarketPrice").GetDouble() / stockObj.GetProperty("epsTrailingTwelveMonths").GetDouble() : 0,
+                        Volume = stockObj.GetProperty("regularMarketVolume").GetInt32(),
+                        PercentageChange = stockObj.GetProperty("regularMarketChangePercent").GetDouble(),
+                        ShareFloat = stockObj.GetProperty("sharesOutstanding").GetInt64(),
+                        AverageDailyVolume10Day = stockObj.GetProperty("averageDailyVolume10Day").GetInt32(),
                     };
                     stocks.Add(stock);
+
                 }
+                // List<GetStockDataBySymbolResponse>? stockDataList = JsonSerializer.Deserialize<List<GetStockDataBySymbolResponse>>(body, new JsonSerializerOptions
+                // {
+                //     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                // });
+                // foreach (var stockData in stockDataList)
+                // {
+                //     var stock = new Stock()
+                //     {
+                //         Symbol = stockData.symbol,
+                //         Name = stockData.longName,
+                //         // Date = stockData.Date,
+                //         Price = stockData.regularMarketPrice,
+                //         MarketCap = stockData.marketCap,
+                //         PERatio = stockData.epsTrailingTwelveMonths != 0 ? stockData.regularMarketPrice / stockData.epsTrailingTwelveMonths : 0,
+                //         Volume = stockData.regularMarketVolume,
+                //         PercentageChange = stockData.regularMarketChangePercent,
+                //         ShareFloat = stockData.sharesOutstanding,
+                //         AverageDailyVolume10Day = stockData.averageDailyVolume10Day
+                //     };
+                //     stocks.Add(stock);
+                // }
                 return stocks;
 
 

@@ -98,24 +98,46 @@ public class StockController : ControllerBase
     [HttpPost("transaction/translate")]
     public IActionResult TranslateTransactionMessage([FromBody] TranslateTransactionMessageRequest request)
     {
-        var transaction = _transactionService.translateTransactionMessage(request.Message);
-        return Ok(transaction);
+        try
+        {
+            var transaction = _transactionService.translateTransactionMessage(request.Message);
+            return Ok(transaction);
+        }
+        catch (Exception ex)
+        {
+
+
+            return BadRequest(ex.Message);
+        }
+
+        // var transaction = _transactionService.translateTransactionMessage(request.Message);
+        // return Ok(transaction);
     }
 
     [HttpPost("transaction/translateAndAdd")]
     public IActionResult TranslateAndAdd([FromBody] TranslateTransactionMessageRequest request)
     {
-        var transaction = _transactionService.translateTransactionMessage(request.Message);
-        var addTransactionRequest = new AddTransactionRequest
+        try
         {
-            StockId = transaction.StockId,
-            Type = transaction.Type,
-            Quantity = transaction.Quantity,
-            Price = transaction.Price,
-            TransactionDate = transaction.TransactionDate
-        };
-        var addedTransaction = _transactionService.AddTransaction(addTransactionRequest);
-        return Ok(addedTransaction);
+            var transaction = _transactionService.translateTransactionMessage(request.Message);
+            var addTransactionRequest = new AddTransactionRequest
+            {
+                StockId = transaction.StockId,
+                Type = transaction.Type,
+                Quantity = transaction.Quantity,
+                Price = transaction.Price,
+                TransactionDate = transaction.TransactionDate
+            };
+            var addedTransaction = _transactionService.AddTransaction(addTransactionRequest);
+            return Ok(addedTransaction);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("exexexexexexexexexexexexexexexex");
+            Console.WriteLine(ex.Message);
+            return BadRequest(ex.Message);
+        }
+
     }
 
     [HttpGet("transaction/totalProfit")]
@@ -137,6 +159,58 @@ public class StockController : ControllerBase
     {
         var profitByMonthList = _transactionService.ListProfitByMonth();
         return Ok(profitByMonthList);
+    }
+
+    [HttpPost("stockHistory")]
+    public IActionResult InsertStockHistory([FromBody] InsertStockHistoryRequest request)
+    {
+        StockHistory sh = new StockHistory
+        {
+            StockId = request.StockId,
+            Date = request.Date,
+            ClosePrice = request.ClosePrice,
+            Volumn = request.Volumn
+        };
+        var stockHistory = _stockService.InsertStockHistory(sh);
+        return Ok(stockHistory);
+    }
+
+
+
+    [HttpPost("stockHistory/list")]
+    public async Task<IActionResult> InsertStockHistoryList(string symbol)
+    {
+        int insertCount = await _stockService.InsertStockHistoryList(symbol);
+        return Ok(insertCount);
+    }
+
+    [HttpGet("stockHistory/list/{symbol}")]
+    public IActionResult GetStockHistoryList(string symbol)
+    {
+        symbol = symbol.ToUpper();
+        var stockHistoryList = _stockService.ListStockHistory(symbol);
+        object res = new
+        {
+            stockHistoryList,
+            stock = _stockService.GetStockBySymbol(symbol)
+        };
+        return Ok(res);
+    }
+
+    [HttpGet("stockHistory/list/exportCsv/{symbol}")]
+    public FileContentResult ExportStockHistoryList(string symbol)
+    {
+        symbol = symbol.ToUpper();
+        return _stockService.ExportStockHistory(symbol);
+    }
+
+    // delete stock history by symbol
+    [HttpDelete("stockHistory/list/{symbol}")]
+    public IActionResult DeleteStockHistoryList(string symbol)
+    {
+        symbol = symbol.ToUpper();
+        _stockService.DeleteStockHistoryBySymbol(symbol);
+        return Ok();
     }
 
 

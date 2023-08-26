@@ -12,13 +12,18 @@ public class StockHistory
     public int Id { get; set; }
     [Column("StockId")]
     [ForeignKey("Stock")]
+    [Required]
     public int StockId { get; set; }
+    [Required]
     [Column("Date")]
     public DateTime Date { get; set; }
+    [Required]
     [Column("ClosePrice")]
     public double ClosePrice { get; set; }
+    [Required]
     [Column("Volume")]
-    public int Volumn { get; set; }
+    public long? Volumn { get; set; }
 
+    [System.Text.Json.Serialization.JsonIgnore]
     public Stock Stock { get; set; }
 }
